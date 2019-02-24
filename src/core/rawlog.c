@@ -92,7 +92,7 @@ static void get_timestampX(const char *format, char *str, int maxlen)
 /* NOTE! str must be dynamically allocated and must not be freed after! */
 static void rawlog_add(RAWLOG_REC *rawlog, char *str)
 {
-	if (rawlog->lines->length >= rawlog_lines && rawlog_lines > 0) {
+	while (rawlog->lines->length >= rawlog_lines && rawlog_lines > 0) {
 		void *tmp = g_queue_pop_head(rawlog->lines);
 		g_free(tmp);
 	}
