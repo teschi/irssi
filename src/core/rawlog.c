@@ -118,7 +118,7 @@ void rawlog_input(RAWLOG_REC *rawlog, const char *str)
 
 	g_return_if_fail(rawlog != NULL);
 	g_return_if_fail(str != NULL);
-	rawlog_add(rawlog, g_strdup_printf(">> §%" PRIu64 ",%s %s", epochMS, timestr, str));
+	rawlog_add(rawlog, g_strdup_printf(">> ~%" PRIu64 ",%s %s", epochMS, timestr, str));
 }
 
 void rawlog_output(RAWLOG_REC *rawlog, const char *str)
@@ -134,7 +134,7 @@ void rawlog_output(RAWLOG_REC *rawlog, const char *str)
 	g_return_if_fail(rawlog != NULL);
 	g_return_if_fail(str != NULL);
 
-	rawlog_add(rawlog, g_strdup_printf("<< §%" PRIu64 ",%s %s", epochMS, timestr, str));
+	rawlog_add(rawlog, g_strdup_printf("<< ~%" PRIu64 ",%s %s", epochMS, timestr, str));
 }
 
 void rawlog_redirect(RAWLOG_REC *rawlog, const char *str)
