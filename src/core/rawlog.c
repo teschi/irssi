@@ -27,6 +27,8 @@
 #include "misc.h"
 #include "write-buffer.h"
 #include "settings.h"
+#include <inttypes.h>
+
 #ifdef HAVE_CAPSICUM
 #include "capsicum.h"
 #endif
@@ -35,6 +37,10 @@
 
 static int rawlog_lines;
 static int signal_rawlog;
+
+//static char *timestamp_format = "%Y%m%d_%H%M%S%Z";
+static char *timestamp_format2;
+
 
 RAWLOG_REC *rawlog_create(void)
 {
@@ -59,6 +65,30 @@ void rawlog_destroy(RAWLOG_REC *rawlog)
 	g_free(rawlog);
 }
 
+
+static void get_timestampX(const char *format, char *str, int maxlen)
+{
+	struct tm *tm;
+	time_t now;
+
+	now = time(NULL);
+
+	g_return_if_fail(format != NULL);
+	if (*format == '\0')
+	{
+		str[0] = '\0';
+		return;
+	}
+
+	tm = localtime(&now);
+	if (strftime(str, maxlen, format, tm) < 0)
+	{
+		str[0] = '\0';
+	}
+
+}
+
+
 /* NOTE! str must be dynamically allocated and must not be freed after! */
 static void rawlog_add(RAWLOG_REC *rawlog, char *str)
 {
@@ -78,18 +108,33 @@ static void rawlog_add(RAWLOG_REC *rawlog, char *str)
 
 void rawlog_input(RAWLOG_REC *rawlog, const char *str)
 {
+	char timestr[256];
+	uint64_t epochMS;
+	struct timeval tv;
+
+	get_timestampX(timestamp_format2, timestr, sizeof(timestr));
+	gettimeofday(&tv, NULL);
+	epochMS =  (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
 	g_return_if_fail(rawlog != NULL);
 	g_return_if_fail(str != NULL);
-
-	rawlog_add(rawlog, g_strdup_printf(">> %s", str));
+	rawlog_add(rawlog, g_strdup_printf(">> §%" PRIu64 ",%s %s", epochMS, timestr, str));
 }
 
 void rawlog_output(RAWLOG_REC *rawlog, const char *str)
 {
+	char timestr[256];
+	uint64_t epochMS;
+	struct timeval tv;
+
+	get_timestampX(timestamp_format2, timestr, sizeof(timestr));
+	gettimeofday(&tv, NULL);
+	epochMS =  (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
 	g_return_if_fail(rawlog != NULL);
 	g_return_if_fail(str != NULL);
 
-	rawlog_add(rawlog, g_strdup_printf("<< %s", str));
+	rawlog_add(rawlog, g_strdup_printf("<< §%" PRIu64 ",%s %s", epochMS, timestr, str));
 }
 
 void rawlog_redirect(RAWLOG_REC *rawlog, const char *str)
@@ -97,7 +142,7 @@ void rawlog_redirect(RAWLOG_REC *rawlog, const char *str)
 	g_return_if_fail(rawlog != NULL);
 	g_return_if_fail(str != NULL);
 
-	rawlog_add(rawlog, g_strdup_printf("--> %s", str));
+	rawlog_add(rawlog, g_strdup_printf("----> %s", str));
 }
 
 static void rawlog_dump(RAWLOG_REC *rawlog, int f)
@@ -195,6 +240,14 @@ void rawlog_set_size(int lines)
 static void read_settings(void)
 {
 	rawlog_set_size(settings_get_int("rawlog_lines"));
+
+	g_free_not_null(timestamp_format2);
+	timestamp_format2 = g_strdup(settings_get_str("timestamp_format"));
+
+
+//	g_free_not_null(log_timestamp);
+//	timestamp_format = g_strdup(settings_get_str("timestamp_format"));
+
 }
 
 static void cmd_rawlog(const char *data, SERVER_REC *server, void *item)
